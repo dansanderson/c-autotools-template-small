@@ -1,0 +1,4 @@
+[submodule "third-party/CMock"]
+	path = third-party/CMock
+	url = https://github.com/ThrowTheSwitch/CMock.git
+	ignore = dirty
