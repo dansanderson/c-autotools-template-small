@@ -6,7 +6,13 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src \
     -I$(top_builddir)/tests/mocks
 
-check_LIBRARIES = libcmock.a
+bin_PROGRAMS =
+check_PROGRAMS =
+check_LIBRARIES =
+CLEANFILES =
+BUILT_SOURCES =
+
+check_LIBRARIES += libcmock.a
 libcmock_a_SOURCES = \
 	$(top_srcdir)/third-party/CMock/src/cmock.c \
 	$(top_srcdir)/third-party/CMock/src/cmock.h \
@@ -26,11 +32,6 @@ tests/mocks/mock_%.c tests/mocks/mock_%.h: src/%.h
 	CMOCK_DIR=$(top_srcdir)/third-party/CMock \
 	MOCK_OUT=tests/mocks \
 	$(RUBY) $(top_srcdir)/third-party/CMock/scripts/create_mock.rb $<
-
-bin_PROGRAMS =
-check_PROGRAMS =
-BUILT_SOURCES =
-CLEANFILES =
 
 
 ### myapp

@@ -310,6 +310,9 @@ issue](https://github.com/dansanderson/c-autotools-template-small/issues).
 requests](https://github.com/dansanderson/c-autotools-template-small/pulls) are
 also welcome, though please pardon me if I take a while to respond.
 
+See also [my blog entry on this
+subject](https://dansanderson.com/lab-notes/autotools-in-2022/).
+
 Thanks!
 
 — Dan (contact@dansanderson.com)
