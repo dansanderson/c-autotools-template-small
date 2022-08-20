@@ -6,8 +6,8 @@ TEST_RUNNER_CPPFLAGS = \
     -I$(top_srcdir)/third-party/CMock/vendor/unity/src \
     -I$(top_srcdir)/third-party/CMock/src \
     -I$(top_srcdir)/src \
-	-Isrc \
-    -I$(top_srcdir)/tests/mocks
+	-I./src \
+    -I./tests/mocks
 
 CMOCK_SRCS = \
 	$(top_srcdir)/third-party/CMock/src/cmock.c \
@@ -29,7 +29,7 @@ tests/runners/runner_test_%.c: tests/test_%.c
 	@test -n "$(RUBY)" || { echo "\nPlease install Ruby to run tests.\n"; exit 1; }
 	$(RUBY) $(top_srcdir)/third-party/CMock/vendor/unity/auto/generate_test_runner.rb $< $@
 
-tests/mocks/mock_%.c: src/%.h
+tests/mocks/mock_%.c tests/mocks/mock_%.h: src/%.h
 	@test -n "$(RUBY)" || { echo "\nPlease install Ruby to run tests.\n"; exit 1; }
 	CMOCK_DIR=$(top_srcdir)/third-party/CMock \
 	MOCK_OUT=tests/mocks \
@@ -47,32 +47,38 @@ tests_runners_test_cfgfile_SOURCES = \
 	$(top_srcdir)/src/cfgfile.c \
 	$(top_srcdir)/src/cfgfile.h \
 	$(CMOCK_SRCS)
+tests_runners_test_cfgfile_CPPFLAGS = $(TEST_RUNNER_CPPFLAGS)
 
 tests_runners_test_executor_SOURCES = \
+	tests/mocks/mock_cfgfile.c \
+	tests/mocks/mock_cfgfile.h \
 	tests/runners/runner_test_executor.c \
 	$(top_srcdir)/tests/test_executor.c \
 	$(top_srcdir)/src/executor.c \
 	$(top_srcdir)/src/executor.h \
-	tests/mocks/mock_cfgfile.c \
-	tests/mocks/mock_cfgfile.h \
 	$(CMOCK_SRCS)
+tests_runners_test_executor_CPPFLAGS = $(TEST_RUNNER_CPPFLAGS)
 
 tests_runners_test_reporter_SOURCES = \
+	tests/mocks/mock_cfgfile.c \
+	tests/mocks/mock_cfgfile.h \
 	tests/runners/runner_test_reporter.c \
 	$(top_srcdir)/tests/test_reporter.c \
 	$(top_srcdir)/src/reporter.c \
 	$(top_srcdir)/src/reporter.h \
+	$(CMOCK_SRCS)
+tests_runners_test_reporter_CPPFLAGS = $(TEST_RUNNER_CPPFLAGS)
+
+CLEANFILES = \
 	tests/mocks/mock_cfgfile.c \
 	tests/mocks/mock_cfgfile.h \
-	$(CMOCK_SRCS)
-
-#CLEANFILES = \
-#	tests/mocks/mock_cfgfile.c \
-#	tests/mocks/mock_cfgfile.h \
-#	tests/mocks/mock_executor.c \
-#	tests/mocks/mock_executor.h \
-#	tests/mocks/mock_reporter.c \
-#	tests/mocks/mock_reporter.h
+	tests/mocks/mock_executor.c \
+	tests/mocks/mock_executor.h \
+	tests/mocks/mock_reporter.c \
+	tests/mocks/mock_reporter.h \
+	tests/runners/runner_test_cfgfile.c \
+	tests/runners/runner_test_executor.c \
+	tests/runners/runner_test_reporter.c
 
 EXTRA_DIST = \
     README.md \
