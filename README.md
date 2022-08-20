@@ -50,7 +50,8 @@ outside of the module source file, and so do not need a naming convention.
 
 Each module should have a test suite that exercises its public interface. This
 template uses [Unity Test](http://www.throwtheswitch.org/unity) to generate
-test runner code and provide assertion functions. See the [Unity Assertions Reference](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsReference.md).
+test runner code and provide assertion functions. See the [Unity Assertions
+Reference](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsReference.md).
 
 A module's test suite is a C source file in `tests/` whose filename begins with
 `test_`. It contains one or more test functions, each one with a name beginning
@@ -112,14 +113,14 @@ and extend these files for your project.
 
 ## Defining programs in Makefile.am
 
-To create a new program in the project:
+To create a new program in the project, create a C source file (`.c`) in `src/`
+with the name of the program containing a definition for the `int main(int
+argc, char **argv)` function.
 
-1. Create a C source file (`.c`) in `src/` with the name of the program containing a
-   definition for the `int main(int argc, char **argv)` function.
-2. In `Makefile.am`, add the name of the program to `bin_PROGRAMS`.
-3. In `Makefile.am`, create a new `myapp_SOURCES` definition, where `myapp` is
-   the name of the program. Its value is the list of `.c` source files for the
-   program and all of the modules in the project that the program uses.
+In `Makefile.am`, add the name of the program to `bin_PROGRAMS`. Create a new
+`myapp_SOURCES` definition, where `myapp` is the name of the program. Its value
+is the list of `.c` source files for the program and all of the modules in the
+project that the program uses.
 
 The example program named `myapp` is defined in `Makefile.am` as follows:
 
@@ -129,44 +130,60 @@ bin_PROGRAMS = myapp
 myapp_SOURCES = \
 	$(top_srcdir)/src/myapp.c \
 	$(top_srcdir)/src/cfgfile.c \
+	$(top_srcdir)/src/cfgfile.h \
 	$(top_srcdir)/src/executor.c \
-	$(top_srcdir)/src/reporter.c
+	$(top_srcdir)/src/executor.h \
+	$(top_srcdir)/src/reporter.c \
+	$(top_srcdir)/src/reporter.h
 ```
 
 ## Defining modules in Makefile.am
 
-To create a new module in the project:
+A module is just a C source file and header file referenced from another C
+source file. The bulk of the set-up is for the test runner program.
 
-1. Create a C source file (`.c`) in `src/` with the name of the module, and a
-   corresponding C header file (`.h`).
-2. Create a C source file in `tests/` with the name `test_` followed by the
-   name of the module and a `.c` extension.
-3. In `Makefile.am`, add an entry to `check_PROGRAMS` with the name
-   `tests/runners/test_modname` where `modname` is the name of the module.
-4. In `Makefile.am`, create a new `tests_runners_test_modname_SOURCES`
-   definition where `modname` is the name of the module. Its value consists of:
-    1. Mock source files (`tests/mocks/mock_xxx.c` and `.h`) for other modules
-       that this module depends on that CMock will generate automatically
-    2. A test runner source file that Unity Test will generate automatically
-    3. The module test source file
-    4. The module's source and header files
-    5. `$(CMOCK_SRCS)`
+To create a new module in the project, create a C source file (`.c`) in `src/`
+with the name of the module, and a corresponding C header file (`.h`). Also
+create a C source file in `tests/` with the name `test_` followed by the name
+of the module and a `.c` extension.
 
-The `SOURCES` order matters: the mocks must be first and the runner second, so
-the generators run in the correct order.
+In `Makefile.am`, where `modname` is the name of the module:
+
+1. Add an entry to `check_PROGRAMS` with the name `tests/runners/test_modname`.
+2. `tests_runners_test_modname_SOURCES =`
+    1. The module test source file
+    2. The module's source and header files
+3. `nodist_tests_runners_test_modname_SOURCES =`
+    1. `tests/runners/runner_test_modname.c`, the runner source to be
+       generated.
+    2. `tests/mocks/mock_depname.c` and `.h` where `depname` is the name of a
+       module that the module under test depends on and should be mocked for
+       the test, for each dependency.
+4. `CLEANFILES += $(nodist_tests_runners_test_modname_SOURCES)`
+5. `tests_runners_test_modname_LDADD = libcmock.a`
+6. The Makefile rule `tests/test_modname.$(OBJEXT): ...` with the runner `.c`
+   file and each mock `.c` file as dependencies. This is what causes CMock to
+   generate the source files prior to the building of the test runner. (Notice
+   the colon `:` instead of an `=`, because this is a rule, not a definition.)
 
 The example module named `executor` is defined in `Makefile.am` as follows,
 with a mocked dependency on the `cfgfile` module:
 
 ```makefile
+check_PROGRAMS += tests/runners/test_executor
 tests_runners_test_executor_SOURCES = \
-	tests/mocks/mock_cfgfile.c \
-	tests/mocks/mock_cfgfile.h \
-	tests/runners/runner_test_executor.c \
 	$(top_srcdir)/tests/test_executor.c \
 	$(top_srcdir)/src/executor.c \
-	$(top_srcdir)/src/executor.h \
-	$(CMOCK_SRCS)
+	$(top_srcdir)/src/executor.h
+nodist_tests_runners_test_executor_SOURCES = \
+	tests/runners/runner_test_executor.c \
+	tests/mocks/mock_cfgfile.c \
+	tests/mocks/mock_cfgfile.h
+CLEANFILES += $(nodist_tests_runners_test_executor_SOURCES)
+tests_runners_test_executor_LDADD = libcmock.a
+tests/test_executor.$(OBJEXT): \
+	tests/runners/runner_test_executor.c \
+	tests/mocks/mock_cfgfile.c
 ```
 
 ## Using Automake
@@ -278,9 +295,13 @@ For what it's worth, I'm also uneasy with how this small template omits a
 formalized statement of module dependencies entirely. A program must list every
 module in its dependency tree as as source, even if the `main()` source file
 for the program only refers to one or two. Each test suite must also list
-immediate dependencies as mocks. Overall that's not too bad, and you can use
-Automake variables (similar to Makefile variables) to reduce the amount of text
-involved.
+immediate dependencies as mocks. Overall that's not too bad in terms of module
+abstraction leakage or redundant information.
+
+It feels like this could be more concise. `makemake.py` pares it down to a short
+list of module dependencies. As far as I can tell, Automake doesn't offer all
+of the same macro-like features that a plain Makefile does, so we can't
+template this within `Makefile.am` alone. If there's a better way, let me know.
 
 Feedback is welcome! If you have ideas for how this can be improved, fixed, or
 made more generally useful, please [file an

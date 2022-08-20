@@ -1,7 +1,17 @@
 .deps
+.dirstamp
 myapp
 myapp-0.1
 myapp-0.1.tar.gz
+/build
+/config.h
+/tests/mocks
+/tests/runners
+*.o
+*.lo
+*.a
+*.la
+/test-suite.log
 
 # http://www.gnu.org/software/automake
 
